@@ -4,4 +4,4 @@ main = Blueprint('main', __name__)
 
 @main.route('/')
 def home():
-    return jsonify({"message": "Welcome to DSA Tuter!"})
+    return jsonify({"message": "Welcome to DSA Tutor!"})

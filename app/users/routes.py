@@ -2,13 +2,19 @@ from flask import Blueprint, request, jsonify
 from middlewares.auth import token_required  
 from app import supabase  
 from config import ADMIN_SECRET  # Load admin secret securely
+import re
 
 users = Blueprint('users', __name__)
+
+def is_valid_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
 @users.route('/signup', methods=['POST'])
 def signup():
     """User Registration (Email, Password, Username, Phone) with Admin Code"""
     data = request.get_json()
+    print("Received signup data:", data)  # Debug print
     email = data.get("email")
     password = data.get("password")
     username = data.get("username")
@@ -18,6 +24,12 @@ def signup():
 
     if not email or not password or not username or not phone:
         return jsonify({"error": "Email, password, username, and phone are required"}), 400
+
+    if not is_valid_email(email):
+        return jsonify({"error": "Invalid email format"}), 400
+
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters long"}), 400
 
     # ✅ Check if the provided admin code is correct
     if admin_code and admin_code == ADMIN_SECRET:
@@ -34,6 +46,7 @@ def signup():
                 "role": role  # ✅ Store role in metadata
             }
         })
+        print("Supabase response:", response)  # Debug print
 
         if response.user is None:
             return jsonify({"error": "Signup failed. Check email format or try again."}), 400
@@ -57,6 +70,7 @@ def signup():
         })
 
     except Exception as e:
+        print("Signup error:", str(e))  # Debug print
         return jsonify({"error": str(e)}), 500
 
 ### --- 🔑 User Login (Checks Email Confirmation) ---
@@ -132,23 +146,7 @@ def get_articles(user):
     """Users can read all articles"""
     response = supabase.table("articles").select("*").execute()
     return jsonify(response.data)
-
-# TODO: differentiate between questions and article
-# FIXME: fix double mark
-### --- ✅ Mark Article as Read (Tracks Progress) ---
-@users.route('/articles/<string:article_id>/mark-read', methods=['POST'])
-@token_required
-def mark_article_as_read(user, article_id):
-    """Users can mark articles as read (Track Progress)"""
-    progress_entry = {
-        "user_id": user["id"],  
-        "article_id": article_id
-    }
-    response = supabase.table("userprogress").insert(progress_entry).execute()
-    return jsonify(response.data)
-
-<<<<<<< HEAD
-### --- 📚 Mark  Practice Questions (Track Progress )---
+### --- 📚 Mark Practice Questions (Track Progress) ---
 @users.route('/questions/<string:question_id>/mark-read', methods=['POST'])
 @token_required
 def mark_question_as_read(user, question_id):
@@ -160,9 +158,7 @@ def mark_question_as_read(user, question_id):
     response = supabase.table("userprogress").insert(progress_entry).execute()
     return jsonify(response.data)
 
-=======
 # TODO: fetch question from category not article 
->>>>>>> 0d780ca5a95998c5600b74dbd624c82a9da5fb37
 @users.route('/articles/<string:article_id>/questions', methods=['GET'])
 @token_required
 def get_related_questions(user, article_id):
