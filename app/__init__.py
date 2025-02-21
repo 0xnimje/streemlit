@@ -25,7 +25,7 @@ def create_app():
     if "admin" not in app.blueprints:
         app.register_blueprint(admin)
     if "users" not in app.blueprints:
-        app.register_blueprint(users)
+        app.register_blueprint(users, url_prefix='/users')
     if "progress" not in app.blueprints:
         app.register_blueprint(progress)
     if "chatbot" not in app.blueprints:
